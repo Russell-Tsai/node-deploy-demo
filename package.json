@@ -1,0 +1,11 @@
+{
+  "name": "deploy-demo",
+  "version": "1.0.0",
+  "description": "a deploy demo repo for learn CI / CD",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Russell Tsai",
+  "license": "ISC"
+}
