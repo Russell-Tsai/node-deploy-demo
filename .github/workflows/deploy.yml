@@ -1,12 +1,11 @@
-name: Deploy to Render
+name: CI/CD with Lint, Test and Slack
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,8 +20,28 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Render Deploy Hook
-        run: |
-          curl "$RENDER_DEPLOY_HOOK_URL"
+      - name: Lint code
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Trigger Render Deploy
+        run: curl "$RENDER_DEPLOY_HOOK_URL"
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+
+      - name: Notify Slack (Success)
+        if: success()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{"text":"✅ Deployment successful for Node.js project!"}' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Slack (Failure)
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{"text":"❌ Deployment failed for Node.js project."}' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
+
