@@ -2,7 +2,7 @@ name: CI/CD with Lint, Test and Slack
 
 on:
   push:
-    branches: [master]
+    branches: [master, staging]
 
 jobs:
   build-and-deploy:
@@ -23,22 +23,41 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Trigger Render Deploy staging
+        if: github.ref == 'refs/heads/staging'
+        run: curl "$RENDER_HOOK_STAGING"
+        env:
+          RENDER_HOOK_STAGING: ${{ secrets.RENDER_HOOK_STAGING }}
+
       - name: Trigger Render Deploy
+        if: github.ref == 'refs/heads/main'
         run: curl "$RENDER_DEPLOY_HOOK_URL"
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
 
-      - name: Notify Slack (Success)
-        if: success()
+      - name: Notify Slack
+        if: always()  # 無論成功或失敗都執行
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          BRANCH: ${{ github.ref_name }}
+          STATUS: ${{ job.status }}
         run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"✅ Deployment successful for Node.js project!"}' \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+          if [ "$STATUS" = "success" ]; then
+            ICON="✅"
+            MESSAGE="Deployment successful"
+          else
+            ICON="❌"
+            MESSAGE="Deployment failed"
+          fi
 
-      - name: Notify Slack (Failure)
-        if: failure()
-        run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"❌ Deployment failed for Node.js project."}' \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+          if [ "$BRANCH" = "main" ]; then
+            ENVIRONMENT="Production"
+          elif [ "$BRANCH" = "staging" ]; then
+            ENVIRONMENT="Staging"
+          else
+            ENVIRONMENT="Unknown"
+          fi
 
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"$ICON $MESSAGE for *$ENVIRONMENT* (${BRANCH})\"}" \
+            $SLACK_WEBHOOK_URL
