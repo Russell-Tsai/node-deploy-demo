@@ -30,7 +30,7 @@ jobs:
           RENDER_HOOK_STAGING: ${{ secrets.RENDER_HOOK_STAGING }}
 
       - name: Trigger Render Deploy
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/master'
         run: curl "$RENDER_DEPLOY_HOOK_URL"
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
@@ -50,7 +50,7 @@ jobs:
             MESSAGE="Deployment failed"
           fi
 
-          if [ "$BRANCH" = "main" ]; then
+          if [ "$BRANCH" = "master" ]; then
             ENVIRONMENT="Production"
           elif [ "$BRANCH" = "staging" ]; then
             ENVIRONMENT="Staging"
